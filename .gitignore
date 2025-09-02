@@ -1,0 +1,49 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Application
+/data/
+/processed/
+/parsers/*.jar
+!parsers/README.md
+
+# Environment
+.env
+*.env.local
+
+# Node (for web-console)
+node_modules/
+dist/
+*.local
+
+# Testing
+test-output/
+target/
+
+# Docker
+docker-compose.override.yml
