@@ -1,0 +1,18 @@
+package com.tia.etl.{{service_name}}.service
+
+import com.tia.etl.{{service_name}}.domain.dto.*
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import java.util.UUID
+
+interface {{ServiceName}}Service {
+    suspend fun findAll(pageable: Pageable): Page<{{Resource}}Dto>
+    suspend fun findById(id: UUID): {{Resource}}Dto
+    suspend fun findByStatus(status: String, pageable: Pageable): Page<{{Resource}}Dto>
+    suspend fun create(request: Create{{Resource}}Request): {{Resource}}Dto
+    suspend fun update(id: UUID, request: Update{{Resource}}Request): {{Resource}}Dto
+    suspend fun patch(id: UUID, request: Patch{{Resource}}Request): {{Resource}}Dto
+    suspend fun delete(id: UUID)
+    suspend fun executeAction(id: UUID, action: String, payload: Map<String, Any>?): {{Resource}}Dto
+    suspend fun getStatistics(): {{ServiceName}}Statistics
+}

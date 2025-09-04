@@ -1,0 +1,94 @@
+package com.tia.etl.{{service_name}}.controller
+
+import com.tia.etl.{{service_name}}.domain.dto.*
+import com.tia.etl.{{service_name}}.service.{{ServiceName}}Service
+import jakarta.validation.Valid
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.web.PageableDefault
+import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.*
+import java.util.UUID
+
+@RestController
+@RequestMapping("/api/v1/{{resource_plural}}")
+class {{ServiceName}}Controller(
+    private val service: {{ServiceName}}Service
+) {
+    
+    @GetMapping
+    suspend fun getAll(
+        @PageableDefault(size = 20, sort = ["createdAt"]) pageable: Pageable,
+        @RequestParam(required = false) status: String?
+    ): Page<{{Resource}}Dto> = withContext(Dispatchers.IO) {
+        if (status != null) {
+            service.findByStatus(status, pageable)
+        } else {
+            service.findAll(pageable)
+        }
+    }
+    
+    @GetMapping("/{id}")
+    suspend fun getById(
+        @PathVariable id: UUID
+    ): {{Resource}}Dto = withContext(Dispatchers.IO) {
+        service.findById(id)
+    }
+    
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    suspend fun create(
+        @Valid @RequestBody request: Create{{Resource}}Request
+    ): {{Resource}}Dto = withContext(Dispatchers.IO) {
+        service.create(request)
+    }
+    
+    @PutMapping("/{id}")
+    suspend fun update(
+        @PathVariable id: UUID,
+        @Valid @RequestBody request: Update{{Resource}}Request
+    ): {{Resource}}Dto = withContext(Dispatchers.IO) {
+        service.update(id, request)
+    }
+    
+    @PatchMapping("/{id}")
+    suspend fun patch(
+        @PathVariable id: UUID,
+        @Valid @RequestBody request: Patch{{Resource}}Request
+    ): {{Resource}}Dto = withContext(Dispatchers.IO) {
+        service.patch(id, request)
+    }
+    
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    suspend fun delete(
+        @PathVariable id: UUID
+    ) = withContext(Dispatchers.IO) {
+        service.delete(id)
+    }
+    
+    @PostMapping("/{id}/actions/{action}")
+    suspend fun executeAction(
+        @PathVariable id: UUID,
+        @PathVariable action: String,
+        @RequestBody(required = false) payload: Map<String, Any>?
+    ): {{Resource}}Dto = withContext(Dispatchers.IO) {
+        service.executeAction(id, action, payload)
+    }
+    
+    @GetMapping("/statistics")
+    suspend fun getStatistics(): {{ServiceName}}Statistics = withContext(Dispatchers.IO) {
+        service.getStatistics()
+    }
+    
+    @GetMapping("/health")
+    suspend fun health(): Map<String, Any> = withContext(Dispatchers.IO) {
+        mapOf(
+            "status" to "UP",
+            "service" to "{{service_name}}",
+            "timestamp" to System.currentTimeMillis()
+        )
+    }
+}

@@ -1,0 +1,223 @@
+package com.tia.etl.{{service_name}}.service.impl
+
+import com.tia.etl.{{service_name}}.domain.dto.*
+import com.tia.etl.{{service_name}}.domain.entity.{{Entity}}
+import com.tia.etl.{{service_name}}.exception.{{Resource}}NotFoundException
+import com.tia.etl.{{service_name}}.mapper.{{ServiceName}}Mapper
+import com.tia.etl.{{service_name}}.repository.{{ServiceName}}Repository
+import com.tia.etl.{{service_name}}.service.{{ServiceName}}Service
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.redis.core.RedisTemplate
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
+import java.time.Instant
+import java.util.UUID
+
+@Service
+@Transactional
+class {{ServiceName}}ServiceImpl(
+    private val repository: {{ServiceName}}Repository,
+    private val mapper: {{ServiceName}}Mapper,
+    private val redisTemplate: RedisTemplate<String, String>
+) : {{ServiceName}}Service {
+    
+    private val logger = LoggerFactory.getLogger({{ServiceName}}ServiceImpl::class.java)
+    
+    companion object {
+        private const val CACHE_KEY_PREFIX = "{{service_name}}:"
+        private val CACHE_TTL = Duration.ofMinutes(5)
+    }
+    
+    @Transactional(readOnly = true)
+    override suspend fun findAll(pageable: Pageable): Page<{{Resource}}Dto> = 
+        withContext(Dispatchers.IO) {
+            logger.debug("Finding all {{resource_plural}} with pagination: {}", pageable)
+            repository.findAll(pageable).map(mapper::toDto)
+        }
+    
+    @Transactional(readOnly = true)
+    override suspend fun findById(id: UUID): {{Resource}}Dto = 
+        withContext(Dispatchers.IO) {
+            logger.debug("Finding {{resource}} by id: {}", id)
+            
+            // Try cache first
+            val cached = getCached(id)
+            if (cached != null) {
+                logger.debug("Cache hit for {{resource}} id: {}", id)
+                return@withContext cached
+            }
+            
+            val entity = repository.findById(id)
+                .orElseThrow { {{Resource}}NotFoundException("{{Resource}} not found with id: $id") }
+            
+            val dto = mapper.toDto(entity)
+            setCached(id, dto)
+            dto
+        }
+    
+    @Transactional(readOnly = true)
+    override suspend fun findByStatus(status: String, pageable: Pageable): Page<{{Resource}}Dto> = 
+        withContext(Dispatchers.IO) {
+            logger.debug("Finding {{resource_plural}} by status: {}", status)
+            repository.findByStatus(status, pageable).map(mapper::toDto)
+        }
+    
+    override suspend fun create(request: Create{{Resource}}Request): {{Resource}}Dto = 
+        withContext(Dispatchers.IO) {
+            logger.info("Creating new {{resource}}: {}", request)
+            
+            val entity = mapper.toEntity(request).apply {
+                createdAt = Instant.now()
+                updatedAt = Instant.now()
+            }
+            
+            val saved = repository.save(entity)
+            publishEvent("{{resource}}.created", saved.id)
+            
+            val dto = mapper.toDto(saved)
+            setCached(saved.id, dto)
+            dto
+        }
+    
+    override suspend fun update(id: UUID, request: Update{{Resource}}Request): {{Resource}}Dto = 
+        withContext(Dispatchers.IO) {
+            logger.info("Updating {{resource}} id: {} with: {}", id, request)
+            
+            val entity = repository.findById(id)
+                .orElseThrow { {{Resource}}NotFoundException("{{Resource}} not found with id: $id") }
+            
+            mapper.updateEntity(request, entity)
+            entity.updatedAt = Instant.now()
+            
+            val saved = repository.save(entity)
+            publishEvent("{{resource}}.updated", saved.id)
+            
+            val dto = mapper.toDto(saved)
+            setCached(saved.id, dto)
+            dto
+        }
+    
+    override suspend fun patch(id: UUID, request: Patch{{Resource}}Request): {{Resource}}Dto = 
+        withContext(Dispatchers.IO) {
+            logger.info("Patching {{resource}} id: {} with: {}", id, request)
+            
+            val entity = repository.findById(id)
+                .orElseThrow { {{Resource}}NotFoundException("{{Resource}} not found with id: $id") }
+            
+            mapper.patchEntity(request, entity)
+            entity.updatedAt = Instant.now()
+            
+            val saved = repository.save(entity)
+            publishEvent("{{resource}}.patched", saved.id)
+            
+            val dto = mapper.toDto(saved)
+            setCached(saved.id, dto)
+            dto
+        }
+    
+    override suspend fun delete(id: UUID) = 
+        withContext(Dispatchers.IO) {
+            logger.info("Deleting {{resource}} id: {}", id)
+            
+            if (!repository.existsById(id)) {
+                throw {{Resource}}NotFoundException("{{Resource}} not found with id: $id")
+            }
+            
+            repository.deleteById(id)
+            removeCached(id)
+            publishEvent("{{resource}}.deleted", id)
+        }
+    
+    override suspend fun executeAction(
+        id: UUID, 
+        action: String, 
+        payload: Map<String, Any>?
+    ): {{Resource}}Dto = withContext(Dispatchers.IO) {
+        logger.info("Executing action '{}' on {{resource}} id: {} with payload: {}", action, id, payload)
+        
+        val entity = repository.findById(id)
+            .orElseThrow { {{Resource}}NotFoundException("{{Resource}} not found with id: $id") }
+        
+        when (action.lowercase()) {
+            "activate" -> entity.isActive = true
+            "deactivate" -> entity.isActive = false
+            "reset" -> resetEntity(entity)
+            else -> throw IllegalArgumentException("Unknown action: $action")
+        }
+        
+        entity.updatedAt = Instant.now()
+        val saved = repository.save(entity)
+        publishEvent("{{resource}}.$action", saved.id)
+        
+        val dto = mapper.toDto(saved)
+        setCached(saved.id, dto)
+        dto
+    }
+    
+    override suspend fun getStatistics(): {{ServiceName}}Statistics = 
+        withContext(Dispatchers.IO) {
+            logger.debug("Generating {{service_name}} statistics")
+            
+            {{ServiceName}}Statistics(
+                totalCount = repository.count(),
+                activeCount = repository.countByIsActive(true),
+                inactiveCount = repository.countByIsActive(false),
+                createdToday = repository.countByCreatedAtAfter(
+                    Instant.now().minus(Duration.ofDays(1))
+                ),
+                updatedToday = repository.countByUpdatedAtAfter(
+                    Instant.now().minus(Duration.ofDays(1))
+                )
+            )
+        }
+    
+    private fun getCached(id: UUID): {{Resource}}Dto? {
+        val key = "$CACHE_KEY_PREFIX$id"
+        val json = redisTemplate.opsForValue().get(key)
+        return json?.let { 
+            // Deserialize from JSON
+            mapper.fromJson(it)
+        }
+    }
+    
+    private fun setCached(id: UUID, dto: {{Resource}}Dto) {
+        val key = "$CACHE_KEY_PREFIX$id"
+        val json = mapper.toJson(dto)
+        redisTemplate.opsForValue().set(key, json, CACHE_TTL)
+    }
+    
+    private fun removeCached(id: UUID) {
+        val key = "$CACHE_KEY_PREFIX$id"
+        redisTemplate.delete(key)
+    }
+    
+    private fun publishEvent(eventType: String, entityId: UUID) {
+        val event = mapOf(
+            "type" to eventType,
+            "entityId" to entityId.toString(),
+            "timestamp" to Instant.now().toString(),
+            "service" to "{{service_name}}"
+        )
+        
+        redisTemplate.convertAndSend("tia.events", mapper.toJson(event))
+        logger.debug("Published event: {}", event)
+    }
+    
+    private fun resetEntity(entity: {{Entity}}) {
+        // Custom reset logic here
+        entity.status = "PENDING"
+    }
+}
+
+data class {{ServiceName}}Statistics(
+    val totalCount: Long,
+    val activeCount: Long,
+    val inactiveCount: Long,
+    val createdToday: Long,
+    val updatedToday: Long
+)

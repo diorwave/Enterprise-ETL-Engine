@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Implement a distributed file scanning service using Test-Driven Development methodology that monitors directories for telecom CDR files, validates them, and queues them for processing with Redis-based coordination. The service will be built test-first with comprehensive unit, integration, and contract tests, ensuring >90% code coverage and high reliability for this critical ETL component.
