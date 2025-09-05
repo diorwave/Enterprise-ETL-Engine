@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh run view:*)",
+      "Read(/tmp/zte-parser-analysis/zte-data/**)",
+      "Read(/tmp/zte-parser-analysis/zte-data/src/main/java/com/bd/asn/zte/data/pgw_r8_new/**)",
+      "Read(/tmp/zte-parser-analysis/zte-data/src/test/java/**)",
+      "Read(/tmp/zte-parser-analysis/zte-data/**)",
+      "Read(/tmp/zte-parser-analysis/**)",
+      "Read(/tmp/zte-parser-analysis/src/main/java/com/bd/asn/zte/data/pgw_r8_new/**)",
+      "Read(/tmp/zte-parser-analysis/src/test/java/**)",
+      "Read(/tmp/zte-parser-analysis/**)",
+      "Bash(./gradlew:*)",
+      "Bash(cat:*)",
+      "Read(/tmp/zte-parser-analysis/src/main/java/com/bd/asn/zte/data/pgw_r8_new/**)",
+      "Bash(./gradlew test:*)",
+      "Bash(./gradlew:*)",
+      "Bash(../../gradlew test --tests \"*QueueManagerTest*\")",
+      "Bash(../../gradlew test:*)",
+      "Bash(sed:*)",
+      "Bash(gradle test:*)",
+      "Bash(gradle clean:*)",
+      "Bash(gradle build:*)",
+      "Bash(gradle:*)",
+      "Bash(git add:*)",
+      "Bash(afplay:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

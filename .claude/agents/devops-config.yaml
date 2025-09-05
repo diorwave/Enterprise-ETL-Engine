@@ -1,0 +1,322 @@
+# DevOps Agent Configuration
+# TIA ETL System Infrastructure Management
+
+agent:
+  name: devops-agent
+  type: infrastructure-specialist
+  version: 1.0.0
+  description: Senior DevOps Engineer for TIA ETL System
+
+capabilities:
+  primary:
+    - ci_cd_pipeline_management
+    - kubernetes_orchestration
+    - docker_containerization
+    - infrastructure_as_code
+    - monitoring_observability
+    - security_compliance
+    
+  secondary:
+    - cost_optimization
+    - performance_tuning
+    - disaster_recovery
+    - incident_response
+    - documentation
+
+tools:
+  container:
+    - docker
+    - docker-compose
+    - buildx
+    - trivy
+    - cosign
+    
+  orchestration:
+    - kubectl
+    - helm
+    - kustomize
+    - k9s
+    - lens
+    
+  ci_cd:
+    - github-actions
+    - argocd
+    - flux
+    - tekton
+    - jenkins
+    
+  cloud:
+    - terraform
+    - ansible
+    - aws-cli
+    - gcloud
+    - azure-cli
+    
+  monitoring:
+    - prometheus
+    - grafana
+    - alertmanager
+    - loki
+    - jaeger
+
+environments:
+  development:
+    cluster: kind-local
+    namespace: tia-dev
+    registry: localhost:5000
+    
+  staging:
+    cluster: tia-staging-cluster
+    namespace: tia-staging
+    registry: ghcr.io/quantum-soft-dev
+    
+  production:
+    cluster: tia-production-cluster
+    namespace: tia-prod
+    registry: ghcr.io/quantum-soft-dev
+
+services:
+  file-scanner:
+    type: backend
+    language: kotlin
+    framework: spring-boot
+    port: 8081
+    replicas: 2
+    
+  parser-orchestrator:
+    type: backend
+    language: kotlin
+    framework: spring-boot
+    port: 8082
+    replicas: 3
+    
+  job-manager:
+    type: backend
+    language: kotlin
+    framework: spring-boot
+    port: 8083
+    replicas: 2
+    
+  monitoring-service:
+    type: backend
+    language: kotlin
+    framework: spring-boot
+    port: 8084
+    replicas: 2
+    
+  web-dashboard:
+    type: frontend
+    language: typescript
+    framework: react
+    port: 3000
+    replicas: 3
+
+dependencies:
+  databases:
+    postgresql:
+      version: "15"
+      replicas: 2
+      storage: 100Gi
+      backup: daily
+      
+    clickhouse:
+      version: "23.8"
+      replicas: 3
+      storage: 500Gi
+      backup: daily
+      
+  cache:
+    redis:
+      version: "7"
+      replicas: 3
+      mode: cluster
+      
+  message-queue:
+    rabbitmq:
+      version: "3.12"
+      replicas: 3
+      mode: cluster
+      
+  auth:
+    keycloak:
+      version: "22"
+      replicas: 2
+      database: postgresql
+
+monitoring:
+  metrics:
+    prometheus:
+      retention: 30d
+      scrape_interval: 15s
+      
+  logging:
+    loki:
+      retention: 7d
+      
+  tracing:
+    jaeger:
+      retention: 3d
+      
+  dashboards:
+    - infrastructure-overview
+    - service-health
+    - business-metrics
+    - security-events
+    - cost-tracking
+
+alerts:
+  critical:
+    - service_down
+    - database_unavailable
+    - high_error_rate
+    - security_breach
+    
+  warning:
+    - high_cpu_usage
+    - high_memory_usage
+    - slow_response_time
+    - certificate_expiry
+    
+  info:
+    - deployment_success
+    - backup_completed
+    - scaling_event
+
+security:
+  scanning:
+    images: trivy
+    code: sonarqube
+    dependencies: snyk
+    
+  secrets:
+    manager: vault
+    rotation: 90d
+    
+  network:
+    policies: enabled
+    mesh: istio
+    
+  compliance:
+    standards:
+      - CIS
+      - PCI-DSS
+      - GDPR
+
+backup:
+  strategy:
+    postgresql: pg_dump
+    clickhouse: clickhouse-backup
+    files: restic
+    
+  schedule:
+    full: "0 2 * * 0"  # Weekly
+    incremental: "0 2 * * *"  # Daily
+    
+  retention:
+    daily: 7
+    weekly: 4
+    monthly: 6
+
+deployment:
+  strategy:
+    type: rolling-update
+    max_surge: 1
+    max_unavailable: 0
+    
+  canary:
+    enabled: true
+    percentage: 10
+    duration: 30m
+    
+  rollback:
+    automatic: true
+    on_failure: true
+
+resource_limits:
+  defaults:
+    cpu:
+      request: 100m
+      limit: 500m
+    memory:
+      request: 128Mi
+      limit: 512Mi
+      
+  database:
+    cpu:
+      request: 500m
+      limit: 2000m
+    memory:
+      request: 1Gi
+      limit: 4Gi
+
+autoscaling:
+  enabled: true
+  min_replicas: 2
+  max_replicas: 10
+  metrics:
+    - type: cpu
+      target: 70
+    - type: memory
+      target: 80
+    - type: requests_per_second
+      target: 1000
+
+workflows:
+  pr_validation:
+    - lint
+    - test
+    - build
+    - security_scan
+    - preview_deploy
+    
+  staging_deployment:
+    - build
+    - push_image
+    - deploy
+    - smoke_test
+    - integration_test
+    
+  production_deployment:
+    - approval_required
+    - backup_current
+    - deploy_canary
+    - validate_canary
+    - full_deploy
+    - health_check
+
+notifications:
+  slack:
+    webhook: ${SLACK_WEBHOOK}
+    channels:
+      alerts: "#tia-alerts"
+      deployments: "#tia-deployments"
+      
+  email:
+    smtp_server: smtp.gmail.com
+    recipients:
+      - devops@tia-etl.gov.lr
+      - oncall@tia-etl.gov.lr
+      
+  pagerduty:
+    api_key: ${PAGERDUTY_API_KEY}
+    service_id: ${PAGERDUTY_SERVICE_ID}
+
+cost_management:
+  budget:
+    monthly_limit: 5000
+    alert_threshold: 80
+    
+  optimization:
+    - spot_instances
+    - reserved_capacity
+    - auto_shutdown_dev
+    - right_sizing
+
+documentation:
+  location: .agent-os/docs/
+  types:
+    - runbooks
+    - architecture
+    - deployment_guides
+    - troubleshooting
+    - security_policies
