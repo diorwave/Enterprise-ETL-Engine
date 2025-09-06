@@ -1,0 +1,281 @@
+name: Parser API Library - Build and Publish
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'core/parser-api/**'
+    tags:
+      - 'parser-api-v*'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'core/parser-api/**'
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type (patch, minor, major)'
+        required: false
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+env:
+  JAVA_VERSION: '21'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  build-and-test:
+    name: Build and Test Parser API
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build parser-api
+        run: ./gradlew :core:parser-api:build --no-daemon
+
+      - name: Run parser-api tests
+        run: ./gradlew :core:parser-api:test --no-daemon
+
+      - name: Generate test report
+        run: ./gradlew :core:parser-api:jacocoTestReport --no-daemon
+        if: always()
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parser-api-test-results
+          path: core/parser-api/build/test-results/test/
+          retention-days: 30
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parser-api-test-report
+          path: core/parser-api/build/reports/tests/test/
+          retention-days: 30
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parser-api-coverage-report
+          path: core/parser-api/build/reports/jacoco/test/html/
+          retention-days: 30
+
+      - name: Verify JAR creation
+        run: ./gradlew :core:parser-api:jar :core:parser-api:sourcesJar :core:parser-api:javadocJar --no-daemon
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: parser-api-jars
+          path: core/parser-api/build/libs/
+          retention-days: 30
+
+  semantic-version:
+    name: Calculate Semantic Version
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    outputs:
+      version: ${{ steps.semantic.outputs.version }}
+      tag: ${{ steps.semantic.outputs.tag }}
+      changelog: ${{ steps.semantic.outputs.changelog }}
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate semantic version
+        id: semantic
+        run: |
+          # Get the latest tag for parser-api
+          LATEST_TAG=$(git tag -l "parser-api-v*" --sort=-version:refname | head -n1)
+          
+          if [ -z "$LATEST_TAG" ]; then
+            # No existing tags, start with 1.0.0
+            NEW_VERSION="1.0.0"
+          else
+            # Extract version number from tag (e.g., parser-api-v1.2.3 -> 1.2.3)
+            CURRENT_VERSION=$(echo "$LATEST_TAG" | sed 's/parser-api-v//')
+            
+            # Parse version components
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+            
+            # Determine version bump based on commit messages since last tag
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --grep="BREAKING CHANGE" --grep="feat:" --grep="fix:" -- core/parser-api/)
+            
+            if echo "$COMMITS" | grep -q "BREAKING CHANGE"; then
+              # Major version bump for breaking changes
+              NEW_VERSION="$((MAJOR + 1)).0.0"
+            elif echo "$COMMITS" | grep -q "feat:"; then
+              # Minor version bump for new features
+              NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
+            elif echo "$COMMITS" | grep -q "fix:"; then
+              # Patch version bump for bug fixes
+              NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+            else
+              # Default to patch bump if changes exist
+              if [ -n "$COMMITS" ]; then
+                NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+              else
+                NEW_VERSION="$CURRENT_VERSION"
+              fi
+            fi
+          fi
+          
+          # Manual version bump from workflow dispatch
+          if [ "${{ github.event.inputs.version_bump }}" != "" ]; then
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$NEW_VERSION"
+            case "${{ github.event.inputs.version_bump }}" in
+              "major") NEW_VERSION="$((MAJOR + 1)).0.0" ;;
+              "minor") NEW_VERSION="$MAJOR.$((MINOR + 1)).0" ;;
+              "patch") NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))" ;;
+            esac
+          fi
+          
+          TAG="parser-api-v$NEW_VERSION"
+          
+          # Generate changelog
+          if [ -n "$LATEST_TAG" ]; then
+            CHANGELOG=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %s" --no-merges -- core/parser-api/)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s" --no-merges -- core/parser-api/)
+          fi
+          
+          # Use multiline output for changelog
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          {
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          
+          echo "Calculated version: $NEW_VERSION"
+          echo "Tag: $TAG"
+
+  publish:
+    name: Publish Parser API Library
+    runs-on: ubuntu-latest
+    needs: [build-and-test, semantic-version]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+      packages: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Set version in gradle.properties
+        run: |
+          echo "version=${{ needs.semantic-version.outputs.version }}" > core/parser-api/gradle.properties
+
+      - name: Build with new version
+        run: ./gradlew :core:parser-api:releaseBuild --no-daemon
+        env:
+          ORG_GRADLE_PROJECT_version: ${{ needs.semantic-version.outputs.version }}
+
+      - name: Publish to GitHub Packages
+        run: ./gradlew :core:parser-api:publish --no-daemon
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          ORG_GRADLE_PROJECT_version: ${{ needs.semantic-version.outputs.version }}
+
+      - name: Create Git tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ needs.semantic-version.outputs.tag }}" -m "Release parser-api v${{ needs.semantic-version.outputs.version }}"
+          git push origin "${{ needs.semantic-version.outputs.tag }}"
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main'
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ needs.semantic-version.outputs.tag }}
+          name: Parser API v${{ needs.semantic-version.outputs.version }}
+          body: |
+            ## Parser API v${{ needs.semantic-version.outputs.version }}
+            
+            ### Changes
+            ${{ needs.semantic-version.outputs.changelog }}
+            
+            ### Usage
+            Add this dependency to your `build.gradle.kts`:
+            
+            ```kotlin
+            dependencies {
+                implementation("com.quantum.etl:parser-api:${{ needs.semantic-version.outputs.version }}")
+            }
+            ```
+            
+            ### Maven Repository
+            ```kotlin
+            repositories {
+                maven {
+                    name = "GitHubPackages"
+                    url = uri("https://maven.pkg.github.com/quantum-soft/tia-etl-system")
+                    credentials {
+                        username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                        password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+                    }
+                }
+            }
+            ```
+            
+            ### Authentication
+            To access GitHub Packages, create a Personal Access Token with `read:packages` permission and configure it as described in the [README](https://github.com/quantum-soft/tia-etl-system/blob/main/core/parser-api/README.md#authentication-setup).
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: |
+            core/parser-api/build/libs/parser-api-${{ needs.semantic-version.outputs.version }}.jar
+            core/parser-api/build/libs/parser-api-${{ needs.semantic-version.outputs.version }}-sources.jar
+            core/parser-api/build/libs/parser-api-${{ needs.semantic-version.outputs.version }}-javadoc.jar
