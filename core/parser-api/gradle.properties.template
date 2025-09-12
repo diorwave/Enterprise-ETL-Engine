@@ -1,0 +1,36 @@
+# Parser API Module Configuration Template
+# Copy this file to gradle.properties and fill in your values
+
+# Project configuration
+version=1.0.0
+group=com.quantum.etl
+artifactId=parser-api
+
+# GitHub Packages Authentication (required for publishing)
+# Option 1: GitHub username and Personal Access Token
+# gpr.user=your-github-username
+# gpr.key=your-personal-access-token
+
+# Option 2: Use environment variables instead
+# USERNAME (set in environment)
+# TOKEN (set in environment)
+
+# Build optimization
+kotlin.code.style=official
+kotlin.parallel.tasks.in.project=true
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+org.gradle.parallel=true
+org.gradle.caching=true
+
+# Kotlin compiler optimization
+kotlin.incremental=true
+kotlin.incremental.useClasspathSnapshot=true
+
+# Publishing configuration (optional)
+# signing.keyId=your-key-id
+# signing.password=your-key-password
+# signing.secretKeyRingFile=/path/to/secring.gpg
+
+# Development settings
+# systemProp.org.gradle.internal.http.connectionTimeout=60000
+# systemProp.org.gradle.internal.http.socketTimeout=60000
