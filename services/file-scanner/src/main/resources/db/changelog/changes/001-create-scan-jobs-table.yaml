@@ -1,0 +1,91 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-scan-jobs-table
+      author: file-scanner-service
+      changes:
+        - createTable:
+            tableName: scan_jobs
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: source_directory
+                  type: VARCHAR(1024)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_pattern
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scan_interval_type
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scan_interval_value
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_file_size_mb
+                  type: INTEGER
+                  defaultValue: 1024
+              - column:
+                  name: recursive_scan
+                  type: BOOLEAN
+                  defaultValue: true
+              - column:
+                  name: max_depth
+                  type: INTEGER
+                  defaultValue: 10
+              - column:
+                  name: priority
+                  type: INTEGER
+                  defaultValue: 0
+              - column:
+                  name: parser_id
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: VARCHAR(100)
+              - column:
+                  name: updated_by
+                  type: VARCHAR(100)
+        - sql:
+            sql: ALTER TABLE scan_jobs ADD CONSTRAINT chk_scan_interval_type CHECK (scan_interval_type IN ('CRON', 'FIXED'));
+      rollback:
+        - dropTable:
+            tableName: scan_jobs

@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/tia_etl}
+    username: ${DB_USER:tia_user}
+    password: ${DB_PASSWORD:tia_password}
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
+scanner:
+  instance-id: ${HOSTNAME:scanner-1}
+  scan:
+    default-timeout: 5m
+    max-concurrent-scans: 3
+    file-size-limit: 1024MB
+  queue:
+    batch-size: 100
+    lock-timeout: 5m
+    cleanup-interval: 1h
+
+logging:
+  level:
+    com.quantumsoft.tia.scanner: INFO
+    org.springframework.web: INFO
+    org.hibernate: WARN

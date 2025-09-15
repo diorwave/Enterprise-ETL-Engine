@@ -1,0 +1,83 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-add-indexes
+      author: file-scanner-service
+      changes:
+        # Indexes for scan_jobs
+        - createIndex:
+            tableName: scan_jobs
+            indexName: idx_scan_jobs_active
+            columns:
+              - column:
+                  name: is_active
+        - createIndex:
+            tableName: scan_jobs
+            indexName: idx_scan_jobs_parser
+            columns:
+              - column:
+                  name: parser_id
+        
+        # Indexes for scanned_files
+        - createIndex:
+            tableName: scanned_files
+            indexName: idx_scanned_files_job
+            columns:
+              - column:
+                  name: job_id
+        - createIndex:
+            tableName: scanned_files
+            indexName: idx_scanned_files_status
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            tableName: scanned_files
+            indexName: idx_scanned_files_discovered
+            columns:
+              - column:
+                  name: discovered_at
+        - createIndex:
+            tableName: scanned_files
+            indexName: idx_scanned_files_hash
+            columns:
+              - column:
+                  name: file_hash
+        
+        # Indexes for scan_job_executions
+        - createIndex:
+            tableName: scan_job_executions
+            indexName: idx_executions_job
+            columns:
+              - column:
+                  name: job_id
+        - createIndex:
+            tableName: scan_job_executions
+            indexName: idx_executions_started
+            columns:
+              - column:
+                  name: started_at
+      rollback:
+        - dropIndex:
+            tableName: scan_jobs
+            indexName: idx_scan_jobs_active
+        - dropIndex:
+            tableName: scan_jobs
+            indexName: idx_scan_jobs_parser
+        - dropIndex:
+            tableName: scanned_files
+            indexName: idx_scanned_files_job
+        - dropIndex:
+            tableName: scanned_files
+            indexName: idx_scanned_files_status
+        - dropIndex:
+            tableName: scanned_files
+            indexName: idx_scanned_files_discovered
+        - dropIndex:
+            tableName: scanned_files
+            indexName: idx_scanned_files_hash
+        - dropIndex:
+            tableName: scan_job_executions
+            indexName: idx_executions_job
+        - dropIndex:
+            tableName: scan_job_executions
+            indexName: idx_executions_started

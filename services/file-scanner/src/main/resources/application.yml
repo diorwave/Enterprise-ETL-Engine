@@ -1,0 +1,124 @@
+spring:
+  application:
+    name: file-scanner-service
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tia_etl
+    username: tia_user
+    password: tia_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+    show-sql: false
+    open-in-view: false
+  
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+  
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
+  
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceId: AUTO
+            instanceName: FileScannerScheduler
+          jobStore:
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+            useProperties: false
+            misfireThreshold: 60000
+            clusterCheckinInterval: 5000
+            isClustered: true
+          threadPool:
+            threadCount: 10
+
+server:
+  port: 8081
+  servlet:
+    context-path: /file-scanner
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+  show-actuator: true
+  packages-to-scan: com.quantumsoft.tia.scanner.controllers
+  paths-to-match: /**
+
+scanner:
+  instance-id: ${HOSTNAME:scanner-1}
+  scan:
+    default-timeout: 5m
+    max-concurrent-scans: 3
+    file-size-limit: 1024MB
+  queue:
+    batch-size: 100
+    lock-timeout: 5m
+    cleanup-interval: 1h
+  metrics:
+    enabled: true
+    collection-interval: 30s
+
+logging:
+  level:
+    com.quantumsoft.tia.scanner: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n"
+  file:
+    name: logs/file-scanner.log
+    max-size: 10MB
+    max-history: 30

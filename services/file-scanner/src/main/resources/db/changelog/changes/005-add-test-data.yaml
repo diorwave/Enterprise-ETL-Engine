@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-add-test-data
+      author: file-scanner-service
+      context: test
+      changes:
+        - insert:
+            tableName: scan_jobs
+            columns:
+              - column:
+                  name: id
+                  value: "123e4567-e89b-12d3-a456-426614174000"
+              - column:
+                  name: name
+                  value: "test-asn1-job"
+              - column:
+                  name: description
+                  value: "Test job for ASN.1 file scanning"
+              - column:
+                  name: source_directory
+                  value: "/test/asn1"
+              - column:
+                  name: file_pattern
+                  value: "*.asn1"
+              - column:
+                  name: scan_interval_type
+                  value: "CRON"
+              - column:
+                  name: scan_interval_value
+                  value: "0/5 * * ? * * *"
+              - column:
+                  name: parser_id
+                  value: "zte-asn1-parser"
+              - column:
+                  name: is_active
+                  value: true
+        - insert:
+            tableName: scan_jobs
+            columns:
+              - column:
+                  name: id
+                  value: "123e4567-e89b-12d3-a456-426614174001"
+              - column:
+                  name: name
+                  value: "test-csv-job"
+              - column:
+                  name: description
+                  value: "Test job for CSV file scanning"
+              - column:
+                  name: source_directory
+                  value: "/test/csv"
+              - column:
+                  name: file_pattern
+                  value: "*.csv"
+              - column:
+                  name: scan_interval_type
+                  value: "FIXED"
+              - column:
+                  name: scan_interval_value
+                  value: "PT5M"
+              - column:
+                  name: parser_id
+                  value: "csv-parser"
+              - column:
+                  name: is_active
+                  value: false
+      rollback:
+        - delete:
+            tableName: scan_jobs
+            where: id IN ('123e4567-e89b-12d3-a456-426614174000', '123e4567-e89b-12d3-a456-426614174001')

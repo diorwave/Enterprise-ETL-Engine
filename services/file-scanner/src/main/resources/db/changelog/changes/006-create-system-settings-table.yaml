@@ -1,0 +1,129 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-create-system-settings-table
+      author: system
+      changes:
+        - createTable:
+            tableName: system_settings
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: setting_key
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: setting_value
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: value_type
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: text
+              - column:
+                  name: last_modified
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: modified_by
+                  type: varchar(255)
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: system_settings
+            indexName: idx_settings_key
+            columns:
+              - column:
+                  name: setting_key
+  - changeSet:
+      id: 006-add-default-settings
+      author: system
+      changes:
+        - insert:
+            tableName: system_settings
+            columns:
+              - column:
+                  name: id
+                  valueComputed: gen_random_uuid()
+              - column:
+                  name: setting_key
+                  value: scanner.file.threshold
+              - column:
+                  name: setting_value
+                  value: "10000"
+              - column:
+                  name: value_type
+                  value: INTEGER
+              - column:
+                  name: description
+                  value: Maximum number of files allowed in the processing queue
+              - column:
+                  name: last_modified
+                  valueDate: now()
+              - column:
+                  name: version
+                  value: 0
+        - insert:
+            tableName: system_settings
+            columns:
+              - column:
+                  name: id
+                  valueComputed: gen_random_uuid()
+              - column:
+                  name: setting_key
+                  value: scanner.scan.enabled
+              - column:
+                  name: setting_value
+                  value: "true"
+              - column:
+                  name: value_type
+                  value: BOOLEAN
+              - column:
+                  name: description
+                  value: Enable or disable automatic file scanning
+              - column:
+                  name: last_modified
+                  valueDate: now()
+              - column:
+                  name: version
+                  value: 0
+        - insert:
+            tableName: system_settings
+            columns:
+              - column:
+                  name: id
+                  valueComputed: gen_random_uuid()
+              - column:
+                  name: setting_key
+                  value: scanner.cache.ttl
+              - column:
+                  name: setting_value
+                  value: "300"
+              - column:
+                  name: value_type
+                  value: INTEGER
+              - column:
+                  name: description
+                  value: Cache TTL in seconds for settings
+              - column:
+                  name: last_modified
+                  valueDate: now()
+              - column:
+                  name: version
+                  value: 0
