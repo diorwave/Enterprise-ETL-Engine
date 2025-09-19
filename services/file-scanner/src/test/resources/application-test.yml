@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: file-scanner-test
+  
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        show_sql: false
+    open-in-view: false
+  
+  liquibase:
+    enabled: false
+  
+  data:
+    redis:
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+  
+  quartz:
+    job-store-type: memory
+    properties:
+      org.quartz:
+        scheduler:
+          instanceName: TestScheduler
+          instanceId: AUTO
+        jobStore:
+          class: org.quartz.simpl.RAMJobStore
+        threadPool:
+          class: org.quartz.simpl.SimpleThreadPool
+          threadCount: 2
+  
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# Disable actuator endpoints for tests
+management:
+  endpoints:
+    enabled-by-default: false
+
+# Reduce logging in tests
+logging:
+  level:
+    root: WARN
+    com.quantumsoft.tia: INFO
+    org.springframework.web: INFO
+    org.hibernate: WARN
+    org.testcontainers: INFO
