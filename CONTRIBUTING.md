@@ -1,65 +1,63 @@
-# Contributing to TIA ETL System
+# Contributing to Enterprise ETL Engine
 
-## Development Process
+Thank you for considering a contribution. This document summarizes how to work on the repository, run checks, and open changes safely.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Project scope
+- Telecom-focused ETL platform with pluggable parsers.
+- Modules: `core/parser-api`, `services/file-scanner`, `parsers/zte-asn1-parser`.
+- Primary maintainer: **diorwave (Dior)**.
 
-## Development Setup
+## Prerequisites
+- Java 21, Kotlin 2.0.21
+- Docker + Docker Compose (for integration/e2e tests and local infra)
+- Git and Gradle wrapper (`./gradlew`)
 
-1. Install prerequisites:
-   - JDK 21
-   - Docker & Docker Compose
-   - Node.js 20 LTS
-
-2. Clone repository:
+## Setup
 ```bash
-git clone https://github.com/quantum-soft-dev/tia-etl-system.git
-cd tia-etl-system
+./gradlew clean build        # full build
+docker-compose -f deployment/docker-compose.yml up -d  # start infra
 ```
 
-3. Start infrastructure:
+Optional local overrides for the scanner:
 ```bash
-docker-compose -f deployment/docker-compose.yml up -d
+cp services/file-scanner/src/main/resources/application-local.yml.example \
+   services/file-scanner/src/main/resources/application-local.yml
 ```
 
-4. Build project:
-```bash
-./gradlew build
-```
+## Building and testing
+- All modules: `./gradlew clean build`
+- Targeted:
+  - Parser API: `./gradlew :core:parser-api:test`
+  - File Scanner: `./gradlew :services:file-scanner:test -Pprofile=unit|integration|e2e|all`
+  - ZTE Parser: `./gradlew :parsers:zte-asn1-parser:test` (integration: `:integrationTest`)
+- Integration/E2E tests use Testcontainers; ensure Docker is running.
+- Coverage: enabled for parser modules; JaCoCo is currently disabled in file-scanner due to Java compatibility.
 
-## Code Style
+## Coding guidelines
+- Follow Kotlin/Java style in `.editorconfig` and `.agent-os/standards/*`.
+- Keep changes small and focused; prefer modular commits per module or feature.
+- Add or update tests alongside functional changes.
+- Avoid committing large or sensitive datasets; redact telecom PII.
 
-- Follow Kotlin coding conventions
-- Use ktlint for formatting
-- Write tests for new features
-- Update documentation
+## Git and commits
+- Branch naming suggestion: `feat/<topic>`, `fix/<issue>`, `chore/<area>`.
+- Commit messages: imperative, clear scope (e.g., `Add queue metrics endpoint`).
+- If touching build or workflows, note rationale in the commit body.
 
-## Commit Messages
+## Pull requests
+- Describe motivation, scope, and testing performed.
+- Checklist:
+  - [ ] Unit tests (or note why not)
+  - [ ] Integration/E2E when relevant
+  - [ ] Docs/config updated if behavior changes
+  - [ ] No secrets or sample customer data added
 
-Follow conventional commits:
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation changes
-- `style:` Code style changes
-- `refactor:` Code refactoring
-- `test:` Test additions/changes
-- `chore:` Build/auxiliary changes
+## Dependencies and publishing
+- Parser API and ZTE parser can publish to GitHub Packages; set `GITHUB_ACTOR` / `GITHUB_TOKEN` when needed.
+- Keep dependency upgrades in separate commits; run security scans when modifying `parsers/zte-asn1-parser` (OWASP Dependency Check is configured).
 
-## Testing
+## Reporting issues
+- Include context, reproduction steps, expected vs. actual behavior, and relevant logs (sanitized).
 
-Run tests before submitting PR:
-```bash
-./gradlew test
-```
-
-## Agent OS
-
-Use Agent OS for code generation:
-```bash
-claude -p "Use /create-spec for [component]"
-claude -p "Use /execute-tasks to implement [component]"
-```
+## Contact
+- For questions or access requests, reach out to **diorwave (Dior)** via the repository issue tracker or listed maintainer contacts.
