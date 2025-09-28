@@ -125,4 +125,35 @@ class ZteAsn1ParserImplTest {
         verify { writer.destroy() }
         verify { metrics.destroy() }
     }
+    
+    @Test
+    fun `should process file successfully`() {
+        // Given
+        val testFile = File(tempDir, "test.asn1")
+        testFile.writeBytes(byteArrayOf(0x30, 0x10)) // Simple ASN.1 SEQUENCE
+        
+        val jobConfig = mockk<JobConfiguration>(relaxed = true)
+        
+        val context = ProcessingContext(
+            file = testFile,
+            processingId = UUID.randomUUID(),
+            jobConfig = jobConfig,
+            clickHouseConnection = mockk(relaxed = true),
+            postgresConnection = mockk(relaxed = true),
+            logger = mockk(relaxed = true)
+        )
+        
+        // Mock decoder behavior
+        every { decoder.decode(any(), any(), any()) } returns 
+            DecodeResult.Failure("End of data")
+        
+        // When
+        val result = parser.process(context)
+        
+        // Then
+        assertThat(result.totalRecords).isEqualTo(0)
+        assertThat(result.successfulRecords).isEqualTo(0)
+        assertThat(result.failedRecords).isEqualTo(0)
+        assertThat(result.bytesProcessed).isEqualTo(2L)
+    }
 }
